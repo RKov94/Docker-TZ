@@ -1,56 +1,67 @@
-version: "3.1"
+version: '3'
+
 services:
+  # PHP service
+  php:
+    image: php:8.1-fpm
+    container_name: app
+    restart: on-failure
+    volumes:
+      - ./back:/var/www/back
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - app-network
+
+  # Nginx service
   nginx:
     build: ./nginx
     container_name: nginx
-    ports:
-      - "8000:80"
-    links:
-      - app
+    restart: on-failure
+    volumes:
+      - ./front/build:/var/www/html
+    depends_on:
       - php
+    ports:
+      - "80:80"
+    networks:
+      - app-network
 
-  app:
+  # Node.js service
+  node:
     image: node:latest
     container_name: my-app
     restart: on-failure
-    working_dir: /application
     volumes:
-      - ./front.build:/application
-    links:
-      - mysql
-      - redis
-    ports:
-      - "9000"
-    environment:
-      "NODE_ENV": "development"
+      - ./front:/var/www/front
+    networks:
+      - app-network
 
+  # MySQL service
   mysql:
-    image: mysql:5.7
-    tty: true
+    image: mysql:latest
     container_name: mysql
+    restart: on-failure
     volumes:
-      - ./data/db:/var/lib/mysql
-    restart: always
-    ports:
-      - "3306:3306"
+      - ./data:/var/lib/mysql
     environment:
-      MYSQL_ROOT_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: 123456
+    networks:
+      - app-network
 
+  # Redis service
   redis:
-    image: redis:alpine
+    image: redis:latest
     container_name: redis
-    ports:
-      - "6379:6379"
-
-  php:
-    build: ./back/php
-    container_name: app
-    restart: always
-    tty: true
-    environment:
-      SERVICE_NAME: app
-    working_dir: /var/www
     volumes:
-      - ./back/php:/var/www
-      - ./back/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+      - ./redis:/data
+    networks:
+      - app-network
 
+networks:
+  app-network:
+    driver: bridge
