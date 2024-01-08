@@ -58,7 +58,7 @@ services:
     image: redis:latest
     container_name: redis
     volumes:
-      - ./redis:/data
+      - ./data:/data
     networks:
       - app-network
 
